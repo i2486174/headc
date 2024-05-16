@@ -12,7 +12,7 @@ jobs:
     # プルリクエストがマージされた場合のみに実行する．
     if: startsWith(github.head_ref, 'release/v') && github.event.pull_request.merged == true
     outputs:
-      appname: totebag
+      appname: headc
       tag: ${{ steps.vars.outputs.tag }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:

@@ -1,10 +1,15 @@
-#[derive(Debug,Parser)] 
+use std::path::PathBuf;
 
-  pub struct CliOpts {
-    #[arg(short = 'n',long default_value = 10)] 
-    lines: Option<u8>,
-    #[arg(short = 'c',long)] 
-    bytes: String,
+use clap::Parser;
+
+#[derive(Debug, Parser)]
+pub struct CliOpts {
+    #[arg(short = 'n',long, default_value = "10")]
+    pub lines: Option<u8>,
+
+    #[arg(short = 'c', long)]
+    pub bytes: Option<u8>,
+
     #[arg(value_name = "FILE")]
-    files: Vec<PathBuf>,
-    }
+    pub files: Vec<PathBuf>,
+}

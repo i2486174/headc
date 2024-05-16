@@ -6,9 +6,11 @@
 headコマンドのクローン
 
 ## Description
+
 指定したファイルの先頭から10行分の情報を表示する
 
 ## Usage
+
 ```
 headc [OPTIONS] <files...>
 OPTIONS
