@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::{BufRead, Read};
+use std::num::ParseIntError;
 
 use crate::cli::build_command;
 
@@ -13,7 +14,7 @@ type MyResult<T> = Result<T, Box<dyn Error>>;
 #[derive(Debug)]
 pub struct Config {
     lines: usize,
-    bytes: Option<usize>,
+    bytes: Option<String>,
     files: Vec<String>,
 }
 
@@ -36,7 +37,8 @@ pub fn run(config: Config) -> MyResult<()> {
         match open(&filename) {
             Err(err) => eprintln!("{}: {}", filename, err),
             Ok(mut file) => {
-                if let Some(num_bytes) = config.bytes {
+                if let Some(num_bytes_str) = &config.bytes {
+                    let num_bytes = parse_size(&num_bytes_str)?;
                     let mut handle = file.take(num_bytes as u64);
                     let mut buffer = vec![0; num_bytes];
                     let bytes_read = handle.read(&mut buffer)?;
@@ -58,8 +60,23 @@ pub fn run(config: Config) -> MyResult<()> {
     Ok(())
 }
 
+pub fn parse_size(size: &str) -> Result<usize, Box<dyn Error>> {
+    let mut size = size.to_string();
+    let multiplier: usize = match size.pop() {
+        Some('K') | Some('k') => 1024,
+        Some('M') | Some('m') => 1024 * 1024,
+        Some('G') | Some('g') => 1024 * 1024 * 1024,
+        Some(c) if c.is_digit(10) => {
+            size.push(c);
+            1
+        }
+        _ => return Err("invalid size suffix".into()),
+    };
+
+    size.parse::<usize>().map(|n| n * multiplier).map_err(|e| e.into())
+}
+
 fn parse_positive_int(val: &String) -> MyResult<usize> {
-    //unimplemented!();
     match val.parse() {
         Ok(n) if n > 0 => Ok(n),
         _ => Err(val.clone().into()),
@@ -67,9 +84,7 @@ fn parse_positive_int(val: &String) -> MyResult<usize> {
 }
 
 pub fn get_args() -> MyResult<Config> {
-    //let with_name = Arg::with_name("files");
     let matches = build_command().get_matches();
-    // let lines = matches.get_one::<String>("lines");
 
     let lines = matches
         .get_one::<String>("lines")
@@ -77,20 +92,17 @@ pub fn get_args() -> MyResult<Config> {
         .transpose()
         .map_err(|e| format!("illegal line count -- {}", e))?;
 
-    let bytes = matches
-        .get_one("bytes")
-        .map(parse_positive_int)
-        .transpose()
-        .map_err(|e| format!("illegal bytes count -- {}", e))?;
+    let bytes = matches.get_one::<String>("bytes").cloned();
 
-    let r = matches
+    let files = matches
         .get_many::<String>("files")
         .unwrap()
         .map(|s| s.to_string())
         .collect();
+
     Ok(Config {
-        files: r,
-        lines: lines.unwrap(),
+        files,
+        lines: lines.unwrap_or(10),
         bytes,
     })
 }
